@@ -33,11 +33,13 @@ namespace code_analyzer
             ShouldlySingleAssertInUowRule,
             NonPrivateConstantsRule,
             TestCaseArgumentsRule,
+            ReplaceMagicValues,
             BlankCodeRule);
 
         public override void Initialize(AnalysisContext context)
         {
             context.RegisterSyntaxNodeAction(AnalyzeFieldToBeEncapsulate, SyntaxKind.FieldDeclaration);
+            context.RegisterSyntaxNodeAction(AnalyzeMagicValues, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeContextualKeyWord, SyntaxKind.IdentifierName);
             context.RegisterSyntaxNodeAction(AnalyzeClassesAreNounRule, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeBlankBlockCode, SyntaxKind.Block);
@@ -61,6 +63,19 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseArguments, SyntaxKind.MethodDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.ArrayInitializerExpression);
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.CollectionInitializerExpression);
+        }
+
+        private static void AnalyzeMagicValues(SyntaxNodeAnalysisContext context)
+        {
+            var node = context.Node;
+
+            if (!(node is ClassDeclarationSyntax))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                ReplaceMagicValues, node.GetLocation(), "Replace Magic Values inside methods with respect to defined constants"));
         }
 
         private static void AnalyzeTestCaseDataArguments(SyntaxNodeAnalysisContext context)

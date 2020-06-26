@@ -179,6 +179,15 @@ namespace code_analyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Replace Magic Values.
+        /// </summary>
+        internal static string ReplaceMagicValuesTitle {
+            get {
+                return ResourceManager.GetString("ReplaceMagicValuesTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Avoid Assert Single Item With UnitOfWork.
         /// </summary>
         internal static string ShouldlySingleAssertInUowTitle {

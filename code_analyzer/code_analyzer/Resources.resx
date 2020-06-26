@@ -121,6 +121,10 @@
     <value>Field as Public or Protected</value>
     <comment>Encapsulate Fields.</comment>
   </data>
+  <data name="ReplaceMagicValuesTitle" xml:space="preserve">
+    <value>Replace Magic Values</value>
+    <comment>Replace Magic Values</comment>
+  </data>
   <data name="ContextualKeywordsTitle" xml:space="preserve">
     <value>Contextual Keyword as a Variable or Member.</value>
     <comment>Encapsulate Fields.</comment>

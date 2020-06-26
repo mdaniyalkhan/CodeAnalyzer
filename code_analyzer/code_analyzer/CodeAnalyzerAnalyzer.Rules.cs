@@ -5,6 +5,14 @@ namespace code_analyzer
 {
     public partial class CodeAnalyzerAnalyzer
     {
+        private static readonly DiagnosticDescriptor ReplaceMagicValues = new DiagnosticDescriptor(
+            RuleId.ReplaceMagicValues,
+            nameof(Resources.ReplaceMagicValuesTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Info,
+            true);
+
         private static readonly DiagnosticDescriptor EncapsulateFieldRule = new DiagnosticDescriptor(
             RuleId.EncapsulateFieldRuleId,
             nameof(Resources.EncapsulateFieldTitle).Get(),
