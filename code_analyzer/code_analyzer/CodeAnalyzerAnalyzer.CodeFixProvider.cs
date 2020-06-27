@@ -1,7 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using code_analyzer.common;
@@ -58,9 +62,9 @@ namespace code_analyzer
             if (classNode != null)
             {
                 context.RegisterCodeFix(CodeAction.Create(
-                    TitleMagicValues,
-                    x => ReplaceMagicValues(context.Document, classNode, x),
-                    TitleMagicValues),
+                        TitleMagicValues,
+                        x => ReplaceMagicValues(context.Document, classNode, x),
+                        TitleMagicValues),
                     diagnostic);
             }
         }
@@ -74,13 +78,13 @@ namespace code_analyzer
                 .DescendantNodes<LiteralExpressionSyntax>()
                 .Where(x => x.Ancestors<MethodDeclarationSyntax>().Any()).ToList();
 
-            var constants = node.DescendantNodes<FieldDeclarationSyntax>().Where(x => x.Modifiers.ToString().Contains("const"));
+            var constants = node.DescendantNodes<FieldDeclarationSyntax>().Where(x => x.Modifiers.ToString().Contains("const")).ToList();
 
             foreach (var constant in constants)
             {
                 foreach (var variable in constant.Declaration.Variables)
                 {
-                    var matched = literalsInsideMethods.Where(x => x.ToString() == variable.Initializer.Value.ToString());
+                    var matched = literalsInsideMethods.Where(x => x.ToString() == variable.Initializer.Value.ToString()).ToList();
                     constantMapping.AddRange(
                         matched
                             .Select(literal => new ConstantMapper
@@ -88,12 +92,51 @@ namespace code_analyzer
                                 ConstantName = variable.Identifier.ValueText,
                                 Literal = literal
                             }));
+
+                    literalsInsideMethods = literalsInsideMethods.Except(matched).ToList();
                 }
             }
 
             foreach (var constantMapper in constantMapping)
             {
                 editor.ReplaceNode(constantMapper.Literal, IdentifierName(constantMapper.ConstantName));
+            }
+
+            if (constants.Any())
+            {
+                var pendingOnes = literalsInsideMethods
+                    .Where(x => x.Kind() == SyntaxKind.StringLiteralExpression)
+                    .GroupBy(grp => grp.ToString()).Select(x => new
+                    {
+                        Expression = x.Key,
+                        Literals = x
+                    });
+
+                foreach (var pending in pendingOnes)
+                {
+                    var constantName = pending.Expression.FixMemberName().Capitalize();
+                    if (Regex.IsMatch(constantName, "^[a-zA-Z_][a-zA-Z_0-9]*$") &&
+                        constantMapping.All(x => x.ConstantName != constantName))
+                    {
+                        var lastConstant = constants.Last();
+                        var token = Literal(pending.Expression.Trim('\"'));
+                        editor.InsertAfter(
+                            lastConstant,
+                            newNode: FieldDeclaration(
+                                    lastConstant.AttributeLists,
+                                    lastConstant.Modifiers,
+                                    VariableDeclaration(ParseTypeName("string")))
+                                .AddDeclarationVariables(VariableDeclarator($" {constantName}")
+                                    .WithInitializer(
+                                        EqualsValueClause(LiteralExpression(SyntaxKind.StringLiteralExpression, token))))
+                                .WithSemicolonToken(Token(SyntaxKind.SemicolonToken)));
+
+                        foreach (var literal in pending.Literals)
+                        {
+                            editor.ReplaceNode(literal, IdentifierName(constantName));
+                        }
+                    }
+                }
             }
 
             return editor.GetChangedDocument();
