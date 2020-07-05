@@ -23,6 +23,8 @@ namespace code_analyzer
         private const string Title = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
         private const string FieldPrefix = "_";
+        private const string  String = "string";
+        private const string  Const = "const";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
             RuleId.EncapsulateFieldRuleId,
@@ -75,7 +77,7 @@ namespace code_analyzer
                 .DescendantNodes<LiteralExpressionSyntax>()
                 .Where(x => x.Ancestors<MethodDeclarationSyntax>().Any()).ToList();
 
-            var constants = node.DescendantNodes<FieldDeclarationSyntax>().Where(x => x.Modifiers.ToString().Contains("const")).ToList();
+            var constants = node.DescendantNodes<FieldDeclarationSyntax>().Where(x => x.Modifiers.ToString().Contains(Const)).ToList();
 
             foreach (var constant in constants)
             {
@@ -122,7 +124,7 @@ namespace code_analyzer
                             newNode: FieldDeclaration(
                                     lastConstant.AttributeLists,
                                     lastConstant.Modifiers,
-                                    VariableDeclaration(ParseTypeName("string")))
+                                    VariableDeclaration(ParseTypeName(String)))
                                 .AddDeclarationVariables(VariableDeclarator($" {constantName}")
                                     .WithInitializer(
                                         EqualsValueClause(LiteralExpression(SyntaxKind.StringLiteralExpression, token))))
