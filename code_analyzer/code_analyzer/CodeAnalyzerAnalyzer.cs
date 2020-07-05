@@ -34,6 +34,7 @@ namespace code_analyzer
             NonPrivateConstantsRule,
             TestCaseArgumentsRule,
             ReplaceMagicValues,
+            UnnecessaryShimsContext,
             BlankCodeRule);
 
         public override void Initialize(AnalysisContext context)
@@ -63,6 +64,28 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseArguments, SyntaxKind.MethodDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.ArrayInitializerExpression);
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.CollectionInitializerExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeUnnecessaryShimsContext, SyntaxKind.UsingStatement);
+        }
+
+        private static void AnalyzeUnnecessaryShimsContext(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is UsingStatementSyntax node))
+            {
+                return;
+            }
+
+            if (!node.Expression.ToString().Contains("ShimsContext.Create()"))
+            {
+                return;
+            }
+
+            if (node.Statement.ToString().Contains("Shim"))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                UnnecessaryShimsContext, node.GetLocation(), "Remove Unnecessary Shims Context"));
         }
 
         private static void AnalyzeMagicValues(SyntaxNodeAnalysisContext context)
@@ -212,6 +235,11 @@ namespace code_analyzer
         {
             var node = context.Node;
             if (!(node is PropertyDeclarationSyntax property))
+            {
+                return;
+            }
+
+            if (property.DescendantNodes<ArrowExpressionClauseSyntax>().Count < 4)
             {
                 return;
             }

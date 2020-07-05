@@ -222,5 +222,14 @@ namespace code_analyzer {
                 return ResourceManager.GetString("ToArrayToListInsideForeachDeclarationTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove Unnecessary Shims Context.
+        /// </summary>
+        internal static string UnnecessaryShimsContextTitle {
+            get {
+                return ResourceManager.GetString("UnnecessaryShimsContextTitle", resourceCulture);
+            }
+        }
     }
 }

@@ -125,6 +125,10 @@
     <value>Replace Magic Values</value>
     <comment>Replace Magic Values</comment>
   </data>
+  <data name="UnnecessaryShimsContextTitle" xml:space="preserve">
+    <value>Remove Unnecessary Shims Context</value>
+    <comment>Remove Unnecessary Shims Context</comment>
+  </data>
   <data name="ContextualKeywordsTitle" xml:space="preserve">
     <value>Contextual Keyword as a Variable or Member.</value>
     <comment>Encapsulate Fields.</comment>

@@ -5,6 +5,14 @@ namespace code_analyzer
 {
     public partial class CodeAnalyzerAnalyzer
     {
+        private static readonly DiagnosticDescriptor UnnecessaryShimsContext = new DiagnosticDescriptor(
+            RuleId.UnnecessaryShimsContext,
+            nameof(Resources.UnnecessaryShimsContextTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
+
         private static readonly DiagnosticDescriptor ReplaceMagicValues = new DiagnosticDescriptor(
             RuleId.ReplaceMagicValues,
             nameof(Resources.ReplaceMagicValuesTitle).Get(),

@@ -5,6 +5,7 @@ namespace code_analyzer.common
     public static class RuleId
     {
         public const string ReplaceMagicValues = "replace_magic_values";
+        public const string UnnecessaryShimsContext = "unnecessary_shims_context";
         public const string EncapsulateFieldRuleId = "encapsulate_public_protected_field";
         public const string ContextualKeywordRuleId = "avoid_contextual_keywords";
         public const string BlankBlockCodeRuleId = "blank_block_code";
