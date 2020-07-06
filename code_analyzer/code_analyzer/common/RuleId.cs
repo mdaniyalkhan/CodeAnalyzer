@@ -23,6 +23,7 @@ namespace code_analyzer.common
         public static readonly string NonPrivateConstantsRuleId = "non_private_constants";
         public static readonly string TestCasesArgumentsRuleId = "test_case_args";
         public static readonly string SimplifyShims = "simplify_shims";
+        public static readonly string DuplicateShims = "duplicate_shims";
 
         public static LocalizableString Get(this string resource)
         {

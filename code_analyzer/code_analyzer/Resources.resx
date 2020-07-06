@@ -125,6 +125,14 @@
     <value>Replace Magic Values</value>
     <comment>Replace Magic Values</comment>
   </data>
+  <data name="DuplicateShimsTitle" xml:space="preserve">
+    <value>Duplicate Shims</value>
+    <comment>Duplicate Shims</comment>
+  </data>
+  <data name="SimplifyShimsTitle" xml:space="preserve">
+    <value>Simplify shims using existing objects</value>
+    <comment>Simplify shims using existing objects</comment>
+  </data>
   <data name="UnnecessaryShimsContextTitle" xml:space="preserve">
     <value>Remove Unnecessary Shims Context</value>
     <comment>Remove Unnecessary Shims Context</comment>

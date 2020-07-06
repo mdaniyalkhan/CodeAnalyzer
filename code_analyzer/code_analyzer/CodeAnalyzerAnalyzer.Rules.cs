@@ -5,9 +5,17 @@ namespace code_analyzer
 {
     public partial class CodeAnalyzerAnalyzer
     {
+        private static readonly DiagnosticDescriptor DuplicateShims = new DiagnosticDescriptor(
+            RuleId.DuplicateShims,
+            nameof(Resources.DuplicateShimsTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
+
         private static readonly DiagnosticDescriptor SimplifyShims = new DiagnosticDescriptor(
             RuleId.SimplifyShims,
-            nameof(Resources.UnnecessaryShimsContextTitle).Get(),
+            nameof(Resources.SimplifyShimsTitle).Get(),
             nameof(Resources.MessageFormat).Get(),
             Category,
             DiagnosticSeverity.Warning,

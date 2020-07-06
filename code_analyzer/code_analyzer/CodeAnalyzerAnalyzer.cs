@@ -34,6 +34,8 @@ namespace code_analyzer
             NonPrivateConstantsRule,
             TestCaseArgumentsRule,
             ReplaceMagicValues,
+            DuplicateShims,
+            SimplifyShims,
             UnnecessaryShimsContext,
             BlankCodeRule);
 
@@ -66,6 +68,33 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.CollectionInitializerExpression);
             context.RegisterSyntaxNodeAction(AnalyzeUnnecessaryShimsContext, SyntaxKind.UsingStatement);
             context.RegisterSyntaxNodeAction(AnalyzeShimsMisuse, SyntaxKind.SimpleMemberAccessExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeDuplicateShims, SyntaxKind.SimpleMemberAccessExpression);
+        }
+
+        private void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is MemberAccessExpressionSyntax node))
+            {
+                return;
+            }
+
+            if (!node.ToString().Contains(".AllInstances."))
+            {
+                return;
+            }
+
+            var method = node.Ancestors<MethodDeclarationSyntax>().FirstOrDefault();
+            if (method != null)
+            {
+                if (method
+                        .DescendantNodes<MemberAccessExpressionSyntax>()
+                        .Count(x => x.ToString() == node.ToString()) > 1)
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DuplicateShims, node.GetLocation(),
+                        "Remove Duplicate Shims"));
+                }
+            }
         }
 
         private static void AnalyzeShimsMisuse(SyntaxNodeAnalysisContext context)
@@ -89,7 +118,7 @@ namespace code_analyzer
                     if (node.ToString() == $"{obj.Type}.AllInstances")
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
-                            UnnecessaryShimsContext, node.GetLocation(),
+                            SimplifyShims, node.GetLocation(),
                             "Simplify Shims using existing object instances"));
                         break;
                     }
@@ -202,7 +231,7 @@ namespace code_analyzer
                 var firstAttribute = attributes.First();
                 for (var attrArgIndex = 0; attrArgIndex < firstAttribute.ArgumentList.Arguments.Count; attrArgIndex++)
                 {
-                    if (attributes.Skip(1).All(x => x.ArgumentList.Arguments[attrArgIndex].ToString() == 
+                    if (attributes.Skip(1).All(x => x.ArgumentList.Arguments[attrArgIndex].ToString() ==
                                                     firstAttribute.ArgumentList.Arguments[attrArgIndex].ToString()))
                     {
                         message = "Simplify Test Code by removing same arguments across all test cases";
@@ -384,7 +413,7 @@ namespace code_analyzer
             };
 
             if (root == null ||
-                genericExceptions.All(x=> root.Identifier.ValueText != x) ||
+                genericExceptions.All(x => root.Identifier.ValueText != x) ||
                 !(root.Parent is ObjectCreationExpressionSyntax &&
                   root.Parent.Parent is ThrowStatementSyntax))
             {
@@ -574,7 +603,7 @@ namespace code_analyzer
             }
 
             if (root.Ancestors().Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration)) &&
-                root.Identifier.ValueText == valueKeyWord )
+                root.Identifier.ValueText == valueKeyWord)
             {
                 return;
             }
