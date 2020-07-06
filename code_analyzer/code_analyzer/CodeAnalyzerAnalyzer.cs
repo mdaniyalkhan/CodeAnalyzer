@@ -65,6 +65,36 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.ArrayInitializerExpression);
             context.RegisterSyntaxNodeAction(AnalyzeTestCaseDataArguments, SyntaxKind.CollectionInitializerExpression);
             context.RegisterSyntaxNodeAction(AnalyzeUnnecessaryShimsContext, SyntaxKind.UsingStatement);
+            context.RegisterSyntaxNodeAction(AnalyzeShimsMisuse, SyntaxKind.SimpleMemberAccessExpression);
+        }
+
+        private static void AnalyzeShimsMisuse(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is MemberAccessExpressionSyntax node))
+            {
+                return;
+            }
+
+            if (!node.ToString().EndsWith("AllInstances"))
+            {
+                return;
+            }
+
+            var method = node.Ancestors<MethodDeclarationSyntax>().FirstOrDefault();
+            if (method != null)
+            {
+                foreach (var obj in method
+                    .DescendantNodes<ObjectCreationExpressionSyntax>())
+                {
+                    if (node.ToString() == $"{obj.Type}.AllInstances")
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            UnnecessaryShimsContext, node.GetLocation(),
+                            "Simplify Shims using existing object instances"));
+                        break;
+                    }
+                }
+            }
         }
 
         private static void AnalyzeUnnecessaryShimsContext(SyntaxNodeAnalysisContext context)
