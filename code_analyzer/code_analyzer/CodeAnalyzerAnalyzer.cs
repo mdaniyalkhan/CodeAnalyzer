@@ -84,16 +84,13 @@ namespace code_analyzer
             }
 
             var method = node.Ancestors<MethodDeclarationSyntax>().FirstOrDefault();
-            if (method != null)
+            if (method?
+                    .DescendantNodes<MemberAccessExpressionSyntax>()
+                    .Count(x => x.ToString() == node.ToString()) > 1)
             {
-                if (method
-                        .DescendantNodes<MemberAccessExpressionSyntax>()
-                        .Count(x => x.ToString() == node.ToString()) > 1)
-                {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        DuplicateShims, node.GetLocation(),
-                        "Remove Duplicate Shims"));
-                }
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DuplicateShims, node.GetLocation(),
+                    "Remove Duplicate Shims"));
             }
         }
 
@@ -110,19 +107,13 @@ namespace code_analyzer
             }
 
             var method = node.Ancestors<MethodDeclarationSyntax>().FirstOrDefault();
-            if (method != null)
+            if (method?
+                    .DescendantNodes<ObjectCreationExpressionSyntax>()
+                    .Any(obj => node.ToString() == $"{obj.Type}.AllInstances") == true)
             {
-                foreach (var obj in method
-                    .DescendantNodes<ObjectCreationExpressionSyntax>())
-                {
-                    if (node.ToString() == $"{obj.Type}.AllInstances")
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            SimplifyShims, node.GetLocation(),
-                            "Simplify Shims using existing object instances"));
-                        break;
-                    }
-                }
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SimplifyShims, node.GetLocation(),
+                    "Simplify Shims using existing object instances"));
             }
         }
 
@@ -157,7 +148,8 @@ namespace code_analyzer
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
-                ReplaceMagicValues, node.GetLocation(), "Replace Magic Values inside methods with respect to defined constants"));
+                ReplaceMagicValues, node.GetLocation(),
+                "Replace Magic Values inside methods with respect to defined constants"));
         }
 
         private static void AnalyzeTestCaseDataArguments(SyntaxNodeAnalysisContext context)
@@ -169,7 +161,8 @@ namespace code_analyzer
             }
 
             if (!initializer.ChildNodes().All(y => y.Kind() == SyntaxKind.ObjectCreationExpression &&
-                                                  (y as ObjectCreationExpressionSyntax)?.Type?.ToString() == "TestCaseData"))
+                                                   (y as ObjectCreationExpressionSyntax)?.Type?.ToString() ==
+                                                   "TestCaseData"))
             {
                 return;
             }
@@ -191,7 +184,7 @@ namespace code_analyzer
                 for (var attrArgIndex = 0; attrArgIndex < firstAttribute.ArgumentList.Arguments.Count; attrArgIndex++)
                 {
                     if (testCases.Skip(1).All(x => x.ArgumentList.Arguments[attrArgIndex].ToString() ==
-                                                    firstAttribute.ArgumentList.Arguments[attrArgIndex].ToString()))
+                                                   firstAttribute.ArgumentList.Arguments[attrArgIndex].ToString()))
                     {
                         message = "Simplify Test Code by removing same arguments across all test cases";
                         break;
@@ -214,7 +207,8 @@ namespace code_analyzer
                 return;
             }
 
-            var attributes = method.AttributeLists.Where(x => x.Attributes.Any(y => y.Name.ToString() == "TestCase")).SelectMany(x => x.Attributes).ToList();
+            var attributes = method.AttributeLists.Where(x => x.Attributes.Any(y => y.Name.ToString() == "TestCase"))
+                .SelectMany(x => x.Attributes).ToList();
 
             if (!attributes.Any())
             {
@@ -269,13 +263,15 @@ namespace code_analyzer
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
-                NonPrivateConstantsRule, node.GetLocation(), "Avoid protected / public constants for values that might change"));
+                NonPrivateConstantsRule, node.GetLocation(),
+                "Avoid protected / public constants for values that might change"));
         }
 
         private static void AnalyzeShouldlySingleAssertInUow(SyntaxNodeAnalysisContext context)
         {
             var node = context.Node;
-            if (!(node is IdentifierNameSyntax syntax) || !syntax.Identifier.ValueText.Equals("ShouldSatisfyAllConditions", StringComparison.CurrentCulture))
+            if (!(node is IdentifierNameSyntax syntax) ||
+                !syntax.Identifier.ValueText.Equals("ShouldSatisfyAllConditions", StringComparison.CurrentCulture))
             {
                 return;
             }
@@ -287,7 +283,8 @@ namespace code_analyzer
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
-                ShouldlySingleAssertInUowRule, node.GetLocation(), "Shouldly - Avoid Assert Single Item With UnitOfWork"));
+                ShouldlySingleAssertInUowRule, node.GetLocation(),
+                "Shouldly - Avoid Assert Single Item With UnitOfWork"));
         }
 
         private static void AnalyzeInappropriateUsageOfProperty(SyntaxNodeAnalysisContext context)
@@ -310,7 +307,8 @@ namespace code_analyzer
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
-                InappropriateUsageOfPropertyRule, node.GetLocation(), "This code declares a property that should be a method."));
+                InappropriateUsageOfPropertyRule, node.GetLocation(),
+                "This code declares a property that should be a method."));
         }
 
         private static void AnalyzeStructCode(SyntaxNodeAnalysisContext context)
@@ -322,7 +320,8 @@ namespace code_analyzer
                 return;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(PreferClassOverStructRule, root.GetLocation(), "This code defines a `struct` that should be a `class`"));
+            context.ReportDiagnostic(Diagnostic.Create(PreferClassOverStructRule, root.GetLocation(),
+                "This code defines a `struct` that should be a `class`"));
         }
 
         private static void AnalyzeMethodWithBoolAsParameter(SyntaxNodeAnalysisContext context)
@@ -364,7 +363,8 @@ namespace code_analyzer
                 return;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(MethodWithMoreThanSevenParametersRule, root.GetLocation(), "This method receives too many parameters (> 7)"));
+            context.ReportDiagnostic(Diagnostic.Create(MethodWithMoreThanSevenParametersRule, root.GetLocation(),
+                "This method receives too many parameters (> 7)"));
         }
 
         private static void AnalyzeEnumWithoutDefaultCode(SyntaxNodeAnalysisContext context)
@@ -377,7 +377,8 @@ namespace code_analyzer
                 return;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(EnumDefaultValueRule, root.GetLocation(), "This enumeration does not contain a value for 0 (zero)."));
+            context.ReportDiagnostic(Diagnostic.Create(EnumDefaultValueRule, root.GetLocation(),
+                "This enumeration does not contain a value for 0 (zero)."));
         }
 
         private static void AnalyzeExceptionWithoutContextCode(SyntaxNodeAnalysisContext context)
@@ -437,7 +438,8 @@ namespace code_analyzer
                 return;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(SwitchWithoutDefaultCaseRule, root.GetLocation(), "Missing default case for switch"));
+            context.ReportDiagnostic(Diagnostic.Create(SwitchWithoutDefaultCaseRule, root.GetLocation(),
+                "Missing default case for switch"));
         }
 
         private static void AnalyzeToArrayToListInForeachDeclaration(SyntaxNodeAnalysisContext context)
@@ -650,7 +652,8 @@ namespace code_analyzer
                 return;
             }
 
-            var commonMessage = "This code has a blank block to do nothing. Sometimes this means the code missed to implement here";
+            var commonMessage =
+                "This code has a blank block to do nothing. Sometimes this means the code missed to implement here";
 
             if (root.Parent is IfStatementSyntax)
             {
