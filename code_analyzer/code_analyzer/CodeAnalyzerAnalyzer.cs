@@ -19,25 +19,25 @@ namespace code_analyzer
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
             EncapsulateFieldRule,
-            ContextualKeyWordRule,
-            LiskovSubsitutionPrincipleRule,
-            ToArrayToListInsideForeachDeclaration,
-            SwitchWithoutDefaultCaseRule,
             AggregateExceptionRule,
-            ExceptionWithoutContextRule,
-            EnumDefaultValueRule,
-            MethodWithMoreThanSevenParametersRule,
-            MethodWithBoolAsParameterRule,
-            PreferClassOverStructRule,
-            InappropriateUsageOfPropertyRule,
-            ShouldlySingleAssertInUowRule,
-            NonPrivateConstantsRule,
-            TestCaseArgumentsRule,
-            ReplaceMagicValues,
+            BlankCodeRule,
+            ContextualKeyWordRule,
             DuplicateShims,
+            EnumDefaultValueRule,
+            ExceptionWithoutContextRule,
+            InappropriateUsageOfPropertyRule,
+            LiskovSubsitutionPrincipleRule,
+            MethodWithBoolAsParameterRule,
+            MethodWithMoreThanSevenParametersRule,
+            NonPrivateConstantsRule,
+            PreferClassOverStructRule,
+            ReplaceMagicValues,
+            ShouldlySingleAssertInUowRule,
             SimplifyShims,
-            UnnecessaryShimsContext,
-            BlankCodeRule);
+            SwitchWithoutDefaultCaseRule,
+            TestCaseArgumentsRule,
+            ToArrayToListInsideForeachDeclaration,
+            UnnecessaryShimsContext);
 
         public override void Initialize(AnalysisContext context)
         {
