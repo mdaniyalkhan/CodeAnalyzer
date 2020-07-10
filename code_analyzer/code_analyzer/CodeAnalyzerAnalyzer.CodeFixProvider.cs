@@ -23,12 +23,14 @@ namespace code_analyzer
         private const string Title = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
         private const string FieldPrefix = "_";
-        private const string  String = "string";
-        private const string  Const = "const";
+        private const string String = "string";
+        private const string Const = "const";
+        private const string RemoveUnnecessaryShimsContextTitle = "Remove Unnecessary Shims Context";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
             RuleId.EncapsulateFieldRuleId,
-            RuleId.ReplaceMagicValues);
+            RuleId.ReplaceMagicValues,
+            RuleId.UnnecessaryShimsContext);
 
         public sealed override FixAllProvider GetFixAllProvider()
         {
@@ -42,8 +44,16 @@ namespace code_analyzer
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-            var node = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<FieldDeclarationSyntax>().FirstOrDefault();
-            var classNode = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+            var node = root.FindToken(diagnosticSpan.Start)
+                .Parent
+                .AncestorsAndSelf().OfType<FieldDeclarationSyntax>()
+                .FirstOrDefault();
+
+            var classNode = root.FindToken(diagnosticSpan.Start)
+                .Parent
+                .AncestorsAndSelf()
+                .OfType<ClassDeclarationSyntax>()
+                .FirstOrDefault();
 
             if (node != null &&
                 !node.Modifiers
@@ -65,8 +75,37 @@ namespace code_analyzer
                         x => ReplaceMagicValues(context.Document, classNode, x),
                         TitleMagicValues),
                     diagnostic);
+
+                context.RegisterCodeFix(CodeAction.Create(
+                        RemoveUnnecessaryShimsContextTitle,
+                        x => RemoveUnnecessaryShimsContext(context.Document, classNode, x),
+                        RemoveUnnecessaryShimsContextTitle),
+                    diagnostic);
             }
         }
+
+        private static async Task<Document> RemoveUnnecessaryShimsContext(Document document, SyntaxNode node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+            var shimsContexts = node
+                .DescendantNodes<BlockSyntax>()
+                .Where(x => x.Parent is UsingStatementSyntax parent &&
+                            parent.Expression.ToString().Contains("ShimsContext.Create()") &&
+                            !parent.Statement.ToString().Contains("Shim"));
+
+            foreach (var context in shimsContexts)
+            {
+                foreach (var statement in context.Statements)
+                {
+                    editor.InsertBefore(context.Parent, statement);
+                }
+
+                editor.RemoveNode(context.Parent);
+            }
+
+            return editor.GetChangedDocument();
+        }
+
 
         private static async Task<Document> ReplaceMagicValues(Document document, SyntaxNode node, CancellationToken cancellationToken)
         {
@@ -77,13 +116,17 @@ namespace code_analyzer
                 .DescendantNodes<LiteralExpressionSyntax>()
                 .Where(x => x.Ancestors<MethodDeclarationSyntax>().Any()).ToList();
 
-            var constants = node.DescendantNodes<FieldDeclarationSyntax>().Where(x => x.Modifiers.ToString().Contains(Const)).ToList();
+            var constants = node
+                .DescendantNodes<FieldDeclarationSyntax>()
+                .Where(x => x.Modifiers.ToString().Contains(Const)).ToList();
 
             foreach (var constant in constants)
             {
                 foreach (var variable in constant.Declaration.Variables)
                 {
-                    var matched = literalsInsideMethods.Where(x => x.ToString() == variable.Initializer.Value.ToString()).ToList();
+                    var matched = literalsInsideMethods
+                        .Where(x => x.ToString() == variable.Initializer.Value.ToString()).ToList();
+
                     constantMapping.AddRange(
                         matched
                             .Select(literal => new ConstantMapper
@@ -127,7 +170,8 @@ namespace code_analyzer
                                     VariableDeclaration(ParseTypeName(String)))
                                 .AddDeclarationVariables(VariableDeclarator($" {constantName}")
                                     .WithInitializer(
-                                        EqualsValueClause(LiteralExpression(SyntaxKind.StringLiteralExpression, token))))
+                                        EqualsValueClause(LiteralExpression(SyntaxKind.StringLiteralExpression,
+                                            token))))
                                 .WithSemicolonToken(Token(SyntaxKind.SemicolonToken)));
 
                         foreach (var literal in pending.Literals)

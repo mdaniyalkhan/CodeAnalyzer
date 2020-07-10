@@ -51,6 +51,10 @@
             }
 
             final = final.Replace(UnderScore, string.Empty);
+            if (str.StartsWith(UnderScore))
+            {
+                final = $"{final}Field";
+            }
             return final.Replace(OldIdValue, NewIdValue)
                 .Replace(OldUrlValue, NewUrlValue)
                 .Replace(Dollar, NewDollar);
