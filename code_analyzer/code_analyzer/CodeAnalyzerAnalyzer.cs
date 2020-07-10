@@ -71,7 +71,7 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeDuplicateShims, SyntaxKind.SimpleMemberAccessExpression);
         }
 
-        private void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
         {
             if (!(context.Node is MemberAccessExpressionSyntax node))
             {
