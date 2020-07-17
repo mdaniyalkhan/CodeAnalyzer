@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,6 +30,8 @@ namespace code_analyzer
             LiskovSubsitutionPrincipleRule,
             MethodWithBoolAsParameterRule,
             MethodWithMoreThanSevenParametersRule,
+            MissingParameterNullValidationRule,
+            MissingConstructorParameterNullValidationRule,
             NonPrivateConstantsRule,
             PreferClassOverStructRule,
             ReplaceMagicValues,
@@ -69,6 +72,8 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeUnnecessaryShimsContext, SyntaxKind.UsingStatement);
             context.RegisterSyntaxNodeAction(AnalyzeShimsMisuse, SyntaxKind.SimpleMemberAccessExpression);
             context.RegisterSyntaxNodeAction(AnalyzeDuplicateShims, SyntaxKind.SimpleMemberAccessExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeMissingParameterNullValidation, SyntaxKind.Parameter);
+            context.RegisterSyntaxNodeAction(AnalyzeMissingConstructorParameterNullValidation, SyntaxKind.Parameter);
         }
 
         private static void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
@@ -124,7 +129,7 @@ namespace code_analyzer
                 return;
             }
 
-            if (!node.Expression.ToString().Contains("ShimsContext.Create()"))
+            if (!node.Expression?.ToString().Contains("ShimsContext.Create()") == true)
             {
                 return;
             }
@@ -685,6 +690,118 @@ namespace code_analyzer
                 root.GetLocation(),
                 "This code exposes a field as public or protected. Encapsulate this field into a property"));
         }
+
+        private static void AnalyzeMissingParameterNullValidation(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is ParameterSyntax parameterSyntax) ||
+                !(parameterSyntax.Parent.Parent is BaseMethodDeclarationSyntax method))
+            {
+                return;
+            }
+
+            if (!(context.SemanticModel.GetDeclaredSymbol(context.Node) is IParameterSymbol parameter))
+            {
+                return;
+            }
+
+            if (parameter.Type.TypeKind == TypeKind.Struct)
+            {
+                return;
+            }
+
+            var memberAccessExpressionsOfParameter = method.DescendantNodes().OfType<MemberAccessExpressionSyntax>().Where(m =>
+                m.Expression is IdentifierNameSyntax identifier &&
+                identifier.Identifier.Text == parameter.Name);
+            if (!memberAccessExpressionsOfParameter.Any())
+            {
+                return;
+            }
+
+            if (ThrowsArgumentNullExceptionForParameter(method, parameter, context.SemanticModel))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                MissingParameterNullValidationRule,
+                parameterSyntax.GetLocation(),
+                "An important improvement would be to refactor the block so that it validates the parameter and throws an `ArgumentNullException` rather than letting a `NullReferenceException` occur or any unexpected behavior."));
+
+        }
+
+        private static bool ThrowsArgumentNullExceptionForParameter(BaseMethodDeclarationSyntax method, IParameterSymbol parameter, SemanticModel semanticModel)
+        {
+            if (method == null) throw new ArgumentNullException(nameof(method));
+            if (parameter == null) throw new ArgumentNullException(nameof(parameter));
+            if (semanticModel == null) throw new ArgumentNullException(nameof(semanticModel));
+
+            bool IsArgumentNullExceptionObjectCreationForParameter(ExpressionSyntax expression)
+            {
+                return expression is ObjectCreationExpressionSyntax objectCreation &&
+                       objectCreation.Type is IdentifierNameSyntax identifier &&
+                       semanticModel.GetSymbolInfo(identifier).Symbol is INamedTypeSymbol namedType &&
+                       namedType.ToDisplayString() == typeof(ArgumentNullException).FullName &&
+                       objectCreation.ArgumentList.Arguments.Any(arg =>
+                           arg.Expression.GetText().ToString() == $"nameof({parameter.Name})");
+            }
+
+            var hasThrowArgumentNullStatementForNullParameter = method.DescendantNodes().OfType<ThrowStatementSyntax>()
+                .Any(t => IsArgumentNullExceptionObjectCreationForParameter(t.Expression));
+
+            var hasThrowArgumentNullExpressionsForNullParameter = method.DescendantNodes().OfType<ThrowExpressionSyntax>()
+                .Any(t => IsArgumentNullExceptionObjectCreationForParameter(t.Expression));
+            return hasThrowArgumentNullExpressionsForNullParameter || hasThrowArgumentNullStatementForNullParameter;
+        }
+
+
+        private static void AnalyzeMissingConstructorParameterNullValidation(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is ParameterSyntax))
+            {
+                return;
+            }
+            var contextNodeSymbol = context.SemanticModel.GetDeclaredSymbol(context.Node);
+            if (!(contextNodeSymbol is IParameterSymbol parameter &&
+                parameter.ContainingSymbol is IMethodSymbol methodSymbol &&
+                methodSymbol.MethodKind == MethodKind.Constructor))
+            {
+                return;
+            }
+
+            if (parameter.Type.TypeKind == TypeKind.Struct)
+            {
+                return;
+            }
+
+            var constructorNodes = methodSymbol.DeclaringSyntaxReferences.First().GetSyntax().DescendantNodes();
+            var assignmentsOnFields = constructorNodes.OfType<AssignmentExpressionSyntax>()
+                .Where(a => context.SemanticModel.GetSymbolInfo(a.Right).Symbol?.Equals(parameter) == true &&
+                            context.SemanticModel.GetSymbolInfo(a.Left).Symbol?.Kind == SymbolKind.Field);
+
+            var fieldsAssignedByParameter =
+                assignmentsOnFields.Select(m => context.SemanticModel.GetSymbolInfo(m.Left).Symbol);
+
+            var classMemberAccesses = parameter.ContainingType.DeclaringSyntaxReferences
+                .SelectMany(c => c.GetSyntax().DescendantNodes())
+                .OfType<MemberAccessExpressionSyntax>()
+                .Where(m =>
+                {
+                    var expressionSymbol = context.SemanticModel.GetSymbolInfo(m.Expression).Symbol;
+                    return fieldsAssignedByParameter.Contains(expressionSymbol);
+                });
+
+            if (!classMemberAccesses.Any())
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                MissingConstructorParameterNullValidationRule,
+                context.Node.GetLocation(),
+                "An important improvement would be to refactor the block so that it validates the constructor parameter and throws an `ArgumentNullException` rather than letting a `NullReferenceException` occur or any unexpected behavior."));
+
+        }
+
 
         private static bool CheckPublicMethodOrField(SyntaxNode genericType)
         {

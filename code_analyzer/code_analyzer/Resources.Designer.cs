@@ -170,6 +170,24 @@ namespace code_analyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Missing constructor parameter&apos;s null validation.
+        /// </summary>
+        internal static string MissingConstructorParameterNullValidationTitle {
+            get {
+                return ResourceManager.GetString("MissingConstructorParameterNullValidationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Missing parameter&apos;s null validation.
+        /// </summary>
+        internal static string MissingParameterNullValidationTitle {
+            get {
+                return ResourceManager.GetString("MissingParameterNullValidationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Avoid protected / public constants for values that might change.
         /// </summary>
         internal static string NonPrivateConstantsTitle {

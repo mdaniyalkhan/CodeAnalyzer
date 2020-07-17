@@ -163,42 +163,39 @@
   </data>
   <data name="ExceptionWithoutContextTitle" xml:space="preserve">
     <value>Exception Without Context</value>
-    <comment/>
   </data>
   <data name="EnumDefaultValueTitle" xml:space="preserve">
     <value>Enum Without Default Value</value>
-    <comment/>
   </data>
   <data name="MethodWithMoreThanSevenParametersTitle" xml:space="preserve">
     <value>Method With Too Many Parameters</value>
-    <comment/>
   </data>
   <data name="MethodWithBoolAsParameterTitle" xml:space="preserve">
     <value>Method With bool as Parameter</value>
-    <comment/>
   </data>
   <data name="PreferClassOverStructTitle" xml:space="preserve">
     <value>Prefer Class Over Struct</value>
-    <comment/>
   </data>
   <data name="InappropriateUsageOfPropertyTitle" xml:space="preserve">
     <value>Inappropriate Usage of Property</value>
-    <comment/>
   </data>
   <data name="ShouldlySingleAssertInUowTitle" xml:space="preserve">
     <value>Avoid Assert Single Item With UnitOfWork</value>
-    <comment/>
   </data>
   <data name="NonPrivateConstantsTitle" xml:space="preserve">
     <value>Avoid protected / public constants for values that might change</value>
-    <comment/>
   </data>
   <data name="TestCaseArgumentsTitle" xml:space="preserve">
     <value>Simplify Test Code by removing unnecessary arguments</value>
-    <comment/>
   </data>
   <data name="MessageFormat" xml:space="preserve">
     <value>{0}.</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>
+  </data>
+  <data name="MissingParameterNullValidationTitle" xml:space="preserve">
+    <value>Missing parameter's null validation</value>
+  </data>
+  <data name="MissingConstructorParameterNullValidationTitle" xml:space="preserve">
+    <value>Missing constructor parameter's null validation</value>
   </data>
 </root>

@@ -16,6 +16,8 @@ namespace code_analyzer.common
         public static readonly string LiskovSubstitutionPrincipleRuleId = "liskov_substitution_principle";
         public static readonly string MethodWithBoolAsParameterRuleId = "method_with_bool_as_parameter";
         public static readonly string MethodWithMoreThanSevenParamtersRuleId = "method_with_more_than_seven_parameters";
+        public static readonly string MissingParameterNullValidation = "missing_parameter_null_validation";
+        public static readonly string MissingConstructorParameterNullValidation = "missing_constructor_parameter_null_validation";
         public static readonly string NonPrivateConstantsRuleId = "non_private_constants";
         public static readonly string ReplaceMagicValues = "replace_magic_values";
         public static readonly string ShouldlySingleAssertInUowRuleId = "shouldly_single_assert_uow";

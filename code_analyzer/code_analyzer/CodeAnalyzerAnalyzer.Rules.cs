@@ -164,5 +164,21 @@ namespace code_analyzer
             Category,
             DiagnosticSeverity.Warning,
             true);
+
+        private static readonly DiagnosticDescriptor MissingParameterNullValidationRule = new DiagnosticDescriptor(
+            RuleId.MissingParameterNullValidation,
+            nameof(Resources.MissingParameterNullValidationTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
+
+        private static readonly DiagnosticDescriptor MissingConstructorParameterNullValidationRule = new DiagnosticDescriptor(
+            RuleId.MissingConstructorParameterNullValidation,
+            nameof(Resources.MissingConstructorParameterNullValidationTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
     }
 }
