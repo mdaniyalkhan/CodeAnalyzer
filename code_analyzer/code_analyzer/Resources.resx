@@ -198,4 +198,7 @@
   <data name="MissingConstructorParameterNullValidationTitle" xml:space="preserve">
     <value>Missing constructor parameter's null validation</value>
   </data>
+  <data name="ParametersNotReassigned" xml:space="preserve">
+    <value>Parameters should not be reassigned</value>
+  </data>
 </root>

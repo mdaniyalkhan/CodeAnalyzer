@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
@@ -40,7 +41,8 @@ namespace code_analyzer
             SwitchWithoutDefaultCaseRule,
             TestCaseArgumentsRule,
             ToArrayToListInsideForeachDeclaration,
-            UnnecessaryShimsContext);
+            UnnecessaryShimsContext,
+            ParameterNotReassignedRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -74,6 +76,7 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeDuplicateShims, SyntaxKind.SimpleMemberAccessExpression);
             context.RegisterSyntaxNodeAction(AnalyzeMissingParameterNullValidation, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeMissingConstructorParameterNullValidation, SyntaxKind.Parameter);
+            context.RegisterSyntaxNodeAction(AnalyzeParameterNotReassigned, SyntaxKind.Parameter);
         }
 
         private static void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
@@ -386,7 +389,7 @@ namespace code_analyzer
                 "This enumeration does not contain a value for 0 (zero)."));
         }
 
-        private static void AnalyzeExceptionWithoutContextCode(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeExceptionWithoutContextCode(SyntaxNodeAnalysisContext context )
         {
             var root = context.Node as ObjectCreationExpressionSyntax;
 
@@ -800,6 +803,38 @@ namespace code_analyzer
                 context.Node.GetLocation(),
                 "An important improvement would be to refactor the block so that it validates the constructor parameter and throws an `ArgumentNullException` rather than letting a `NullReferenceException` occur or any unexpected behavior."));
 
+        }
+
+        private static void AnalyzeParameterNotReassigned(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.SemanticModel.GetDeclaredSymbol(context.Node) is IParameterSymbol parameterSymbol))
+            {
+                return;
+            }
+
+            if (parameterSymbol.RefKind != RefKind.None)
+            {
+                return;
+            }
+
+            if (!(parameterSymbol.ContainingSymbol is IMethodSymbol methodSymbol))
+            {
+                return;
+            }
+
+            var methodSyntax = methodSymbol.DeclaringSyntaxReferences.First().GetSyntax();
+            var assignments = methodSyntax.DescendantNodes().OfType<AssignmentExpressionSyntax>();
+
+            if (!assignments.Any(assignment =>
+                Equals(context.SemanticModel.GetSymbolInfo(assignment.Left).Symbol, parameterSymbol)))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                ParameterNotReassignedRule,
+                context.Node.GetLocation(),
+                "A possible improvement would be to avoid such reassignment and use a local variable to hold the updated value."));
         }
 
 

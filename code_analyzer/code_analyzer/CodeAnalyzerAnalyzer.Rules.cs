@@ -180,5 +180,13 @@ namespace code_analyzer
             Category,
             DiagnosticSeverity.Warning,
             true);
+
+        private static readonly DiagnosticDescriptor ParameterNotReassignedRule = new DiagnosticDescriptor(
+            RuleId.ParameterNotReAssigned,
+            nameof(Resources.ParametersNotReassigned).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
     }
 }
