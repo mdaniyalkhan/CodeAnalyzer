@@ -21,7 +21,6 @@ namespace code_analyzer
     {
         private const string PrivateModifier = "private";
         
-        
         private const string Title = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
         private const string FieldPrefix = "_";
