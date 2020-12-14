@@ -20,6 +20,7 @@ namespace code_analyzer
     public class CodeAnalyzerCodeFixProvider : CodeFixProvider
     {
         private const string PrivateModifier = "private";
+        
         private const string Title = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
         private const string FieldPrefix = "_";
