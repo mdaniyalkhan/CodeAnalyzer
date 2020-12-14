@@ -33,6 +33,7 @@
             for (var index = 0; index < str.Length; index++)
             {
                 var ch = str[index];
+                
                 final += ch;
                 for (var indexNext = index + 1; indexNext < str.Length; indexNext++)
                 {
