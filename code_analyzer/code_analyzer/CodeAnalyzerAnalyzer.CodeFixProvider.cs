@@ -25,6 +25,8 @@ namespace code_analyzer
         private const string FieldPrefix = "_";
         private const string String = "string";
         private const string Const = "const";
+        
+        
         private const string RemoveUnnecessaryShimsContextTitle = "Remove Unnecessary Shims Context";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
