@@ -201,4 +201,7 @@
   <data name="ParametersNotReassigned" xml:space="preserve">
     <value>Parameters should not be reassigned</value>
   </data>
+  <data name="ParametersUnused" xml:space="preserve">
+    <value>Remove Unused Parameters</value>
+  </data>
 </root>

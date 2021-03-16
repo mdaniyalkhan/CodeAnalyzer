@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -42,13 +40,14 @@ namespace code_analyzer
             TestCaseArgumentsRule,
             ToArrayToListInsideForeachDeclaration,
             UnnecessaryShimsContext,
-            ParameterNotReassignedRule);
+            ParameterNotReassignedRule,
+            ParameterUnusedRule);
 
         public override void Initialize(AnalysisContext context)
         {
             context.RegisterSyntaxNodeAction(AnalyzeFieldToBeEncapsulate, SyntaxKind.FieldDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeMagicValues, SyntaxKind.ClassDeclaration);
-            context.RegisterSyntaxNodeAction(AnalyzeContextualKeyWord, SyntaxKind.IdentifierName);
+            context.RegisterSyntaxNodeAction(AnalyzeContextualKeyWord, SyntaxKind.IdentifierName, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeClassesAreNounRule, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeBlankBlockCode, SyntaxKind.Block);
             context.RegisterSyntaxNodeAction(
@@ -77,6 +76,7 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeMissingParameterNullValidation, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeMissingConstructorParameterNullValidation, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeParameterNotReassigned, SyntaxKind.Parameter);
+            context.RegisterSyntaxNodeAction(AnalyzeParameterUnused, SyntaxKind.Parameter);
         }
 
         private static void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)
@@ -389,7 +389,7 @@ namespace code_analyzer
                 "This enumeration does not contain a value for 0 (zero)."));
         }
 
-        private static void AnalyzeExceptionWithoutContextCode(SyntaxNodeAnalysisContext context )
+        private static void AnalyzeExceptionWithoutContextCode(SyntaxNodeAnalysisContext context)
         {
             var root = context.Node as ObjectCreationExpressionSyntax;
 
@@ -561,69 +561,83 @@ namespace code_analyzer
 
         private static void AnalyzeContextualKeyWord(SyntaxNodeAnalysisContext context)
         {
-            var root = context.Node as IdentifierNameSyntax;
+            var identifer = context.Node as IdentifierNameSyntax;
+            var parameter = context.Node as ParameterSyntax;
             var valueKeyWord = "value";
-            var contextualKeywords = new[]
-            {
-                "add",
-                "alias",
-                "ascending",
-                "async",
-                "await",
-                "by",
-                "descending",
-                "dynamic",
-                "equals",
-                "from",
-                "get",
-                "global",
-                "group",
-                "into",
-                "join",
-                "let",
-                "nameof",
-                "on",
-                "orderby",
-                "partial",
-                "remove",
-                "select",
-                "set",
-                valueKeyWord,
-                "var",
-                "when",
-                "where",
-                "yield"
-            };
 
-            if (root == null ||
-                root.Parent is InvocationExpressionSyntax ||
-                root.Parent is VariableDeclarationSyntax ||
-                root.Parent is ForEachStatementSyntax ||
-                root.Parent is ForStatementSyntax ||
-                root.Parent is WhileStatementSyntax ||
-                root.Parent is SwitchStatementSyntax ||
-                root.Parent is DeclarationExpressionSyntax ||
-                root.Parent is TypeOfExpressionSyntax ||
-                root.Parent is MethodDeclarationSyntax ||
-                root.Parent is ParameterSyntax ||
-                root.Parent.Parent is GenericNameSyntax ||
-                contextualKeywords.All(x => x != root.Identifier.ValueText))
+            if (VerifyContextualKeyword(identifer, identifer?.Identifier.ValueText) && 
+                VerifyContextualKeyword(parameter, parameter?.Identifier.ValueText))
             {
                 return;
             }
 
-            if (root.Ancestors().Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration)) &&
-                root.Identifier.ValueText == valueKeyWord)
+            if (identifer != null && 
+                identifer.Ancestors().Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration)) && 
+                identifer.Identifier.ValueText == valueKeyWord)
             {
                 return;
             }
 
             context.ReportDiagnostic(Diagnostic.Create(
                 ContextualKeyWordRule,
-                root.GetLocation(),
+                context.Node.GetLocation(),
                 "This code uses the contextual keyword as a variable or member name. " +
                 "An important improvement would be to rename this variable so that it is not named after a keyword"));
         }
+
+        private static bool VerifyContextualKeyword(SyntaxNode identifer, string text)
+        {
+            if (identifer == null ||
+                identifer.Parent is InvocationExpressionSyntax ||
+                identifer.Parent is VariableDeclarationSyntax ||
+                identifer.Parent is ForEachStatementSyntax ||
+                identifer.Parent is ForStatementSyntax ||
+                identifer.Parent is WhileStatementSyntax ||
+                identifer.Parent is SwitchStatementSyntax ||
+                identifer.Parent is DeclarationExpressionSyntax ||
+                identifer.Parent is TypeOfExpressionSyntax ||
+                identifer.Parent is MethodDeclarationSyntax ||
+                identifer.Parent is ParameterSyntax ||
+                identifer.Parent.Parent is GenericNameSyntax ||
+                ContextualKeywords.All(x => x != text))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string[] ContextualKeywords { get; } =
+        {
+            "add",
+            "alias",
+            "ascending",
+            "async",
+            "await",
+            "by",
+            "descending",
+            "dynamic",
+            "equals",
+            "from",
+            "get",
+            "global",
+            "group",
+            "into",
+            "join",
+            "let",
+            "nameof",
+            "on",
+            "orderby",
+            "partial",
+            "remove",
+            "select",
+            "set",
+            "value",
+            "var",
+            "when",
+            "where",
+            "yield"
+        };
 
         private static void AnalyzeClassesAreNounRule(SyntaxNodeAnalysisContext context)
         {
@@ -837,6 +851,42 @@ namespace code_analyzer
                 "A possible improvement would be to avoid such reassignment and use a local variable to hold the updated value."));
         }
 
+        private static void AnalyzeParameterUnused(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.SemanticModel.GetDeclaredSymbol(context.Node) is IParameterSymbol parameterSymbol))
+            {
+                return;
+            }
+
+            if (parameterSymbol.RefKind != RefKind.None)
+            {
+                return;
+            }
+
+            if (!(parameterSymbol.ContainingSymbol is IMethodSymbol methodSymbol))
+            {
+                return;
+            }
+
+            var method = methodSymbol.DeclaringSyntaxReferences.First().GetSyntax() as MethodDeclarationSyntax;
+
+            if (method == null)
+            {
+                return;
+            }
+
+            var dataFlow = context.SemanticModel.AnalyzeDataFlow(method.Body);
+            var parametersDeclared = dataFlow.WrittenOutside.Where(x => x.Kind == SymbolKind.Parameter);
+            var unused = parametersDeclared.Except(dataFlow.ReadInside);
+
+            foreach (var parameter in unused)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    ParameterUnusedRule,
+                    parameter.Locations.First(),
+                    $"A possible improvement would be to remove unused parameter {parameter.Name}"));
+            }
+        }
 
         private static bool CheckPublicMethodOrField(SyntaxNode genericType)
         {

@@ -188,5 +188,13 @@ namespace code_analyzer
             Category,
             DiagnosticSeverity.Warning,
             true);
+
+        private static readonly DiagnosticDescriptor ParameterUnusedRule = new DiagnosticDescriptor(
+            RuleId.ParameterUnused,
+            nameof(Resources.ParametersUnused).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Warning,
+            true);
     }
 }

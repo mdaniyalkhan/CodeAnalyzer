@@ -27,6 +27,7 @@ namespace code_analyzer.common
         public static readonly string ToArrayToListInsideForeachDeclarationRuleId = "toarray_tolist_inside_foreach_declaration";
         public static readonly string UnnecessaryShimsContext = "unnecessary_shims_context";
         public static readonly string ParameterNotReAssigned = "parameters_should_not_be_reassigned";
+        public static readonly string ParameterUnused = "parameters_unused";
 
         public static LocalizableString Get(this string resource)
         {
