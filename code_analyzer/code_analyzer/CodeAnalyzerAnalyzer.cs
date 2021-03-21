@@ -137,6 +137,11 @@ namespace code_analyzer
                 return;
             }
 
+            if (!node.Declaration?.ToString().Contains("ShimsContext.Create()") == true)
+            {
+                return;
+            }
+
             if (node.Statement.ToString().Contains("Shim"))
             {
                 return;
@@ -189,15 +194,18 @@ namespace code_analyzer
             else
             {
                 var firstAttribute = testCases.First();
-                for (var attrArgIndex = 0; attrArgIndex < firstAttribute.ArgumentList.Arguments.Count; attrArgIndex++)
-                {
-                    if (testCases.Skip(1).All(x => x.ArgumentList.Arguments[attrArgIndex].ToString() ==
-                                                   firstAttribute.ArgumentList.Arguments[attrArgIndex].ToString()))
+                if (firstAttribute.ArgumentList != null)
+                    for (var attrArgIndex = 0;
+                        attrArgIndex < firstAttribute.ArgumentList.Arguments.Count;
+                        attrArgIndex++)
                     {
-                        message = "Simplify Test Code by removing same arguments across all test cases";
-                        break;
+                        if (testCases.Skip(1).All(x => x.ArgumentList != null && x.ArgumentList.Arguments[attrArgIndex].ToString() ==
+                                                       firstAttribute.ArgumentList.Arguments[attrArgIndex].ToString()))
+                        {
+                            message = "Simplify Test Code by removing same arguments across all test cases";
+                            break;
+                        }
                     }
-                }
             }
 
             if (!string.IsNullOrWhiteSpace(message))
@@ -726,6 +734,11 @@ namespace code_analyzer
                 return;
             }
 
+            if (method.Modifiers.ToFullString().Contains("private"))
+            {
+                return;
+            }
+
             var memberAccessExpressionsOfParameter = method.DescendantNodes().OfType<MemberAccessExpressionSyntax>().Where(m =>
                 m.Expression is IdentifierNameSyntax identifier &&
                 identifier.Identifier.Text == parameter.Name);
@@ -790,7 +803,18 @@ namespace code_analyzer
                 return;
             }
 
-            var constructorNodes = methodSymbol.DeclaringSyntaxReferences.First().GetSyntax().DescendantNodes();
+            var methodSyntaxNode = methodSymbol.DeclaringSyntaxReferences.First().GetSyntax() as ConstructorDeclarationSyntax;
+            if (methodSyntaxNode == null)
+            {
+                return;
+            }
+
+            if (methodSyntaxNode.Modifiers.ToFullString().Contains("private"))
+            {
+                return;
+            }
+
+            var constructorNodes = methodSyntaxNode.DescendantNodes();
             var assignmentsOnFields = constructorNodes.OfType<AssignmentExpressionSyntax>()
                 .Where(a => context.SemanticModel.GetSymbolInfo(a.Right).Symbol?.Equals(parameter) == true &&
                             context.SemanticModel.GetSymbolInfo(a.Left).Symbol?.Kind == SymbolKind.Field);
@@ -881,10 +905,13 @@ namespace code_analyzer
 
             foreach (var parameter in unused)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    ParameterUnusedRule,
-                    parameter.Locations.First(),
-                    $"A possible improvement would be to remove unused parameter {parameter.Name}"));
+                if (parameter.Name != "this")
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        ParameterUnusedRule,
+                        parameter.Locations.First(),
+                        $"A possible improvement would be to remove unused parameter {parameter.Name}"));
+                }
             }
         }
 
