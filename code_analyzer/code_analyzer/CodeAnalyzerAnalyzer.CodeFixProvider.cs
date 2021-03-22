@@ -207,8 +207,8 @@ namespace code_analyzer
 
         private static string ConvertName(string oldName)
         {
-            oldName = oldName.Replace(FieldPrefix, string.Empty);
-            return char.ToUpperInvariant(oldName[0]) + oldName.Substring(1);
+            var name = oldName.Replace(FieldPrefix, string.Empty);
+            return char.ToUpperInvariant(name[0]) + name.Substring(1);
         }
     }
 }
