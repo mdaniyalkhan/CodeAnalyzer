@@ -45,6 +45,10 @@ namespace code_analyzer
 
         public override void Initialize(AnalysisContext context)
         {
+            if (context == null)
+            {
+                return;
+            }
             context.RegisterSyntaxNodeAction(AnalyzeFieldToBeEncapsulate, SyntaxKind.FieldDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeMagicValues, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeContextualKeyWord, SyntaxKind.IdentifierName, SyntaxKind.Parameter);
@@ -401,10 +405,16 @@ namespace code_analyzer
         {
             var root = context.Node as ObjectCreationExpressionSyntax;
 
-            var exceptionWithoutContext = root?.Parent is ThrowStatementSyntax &&
+            if (root == null)
+            {
+                return;
+            }
+
+            var exceptionWithoutContext = root.ArgumentList != null &&
+                                          root.Parent is ThrowStatementSyntax &&
                                           !root.ArgumentList.Arguments.Any();
 
-            if (root == null || !exceptionWithoutContext)
+            if (!exceptionWithoutContext)
             {
                 return;
             }
@@ -573,14 +583,14 @@ namespace code_analyzer
             var parameter = context.Node as ParameterSyntax;
             var valueKeyWord = "value";
 
-            if (VerifyContextualKeyword(identifer, identifer?.Identifier.ValueText) && 
+            if (VerifyContextualKeyword(identifer, identifer?.Identifier.ValueText) &&
                 VerifyContextualKeyword(parameter, parameter?.Identifier.ValueText))
             {
                 return;
             }
 
-            if (identifer != null && 
-                identifer.Ancestors().Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration)) && 
+            if (identifer != null &&
+                identifer.Ancestors().Any(x => x.IsKind(SyntaxKind.SetAccessorDeclaration)) &&
                 identifer.Identifier.ValueText == valueKeyWord)
             {
                 return;
@@ -771,6 +781,7 @@ namespace code_analyzer
                        objectCreation.Type is IdentifierNameSyntax identifier &&
                        semanticModel.GetSymbolInfo(identifier).Symbol is INamedTypeSymbol namedType &&
                        namedType.ToDisplayString() == typeof(ArgumentNullException).FullName &&
+                       objectCreation.ArgumentList != null &&
                        objectCreation.ArgumentList.Arguments.Any(arg =>
                            arg.Expression.GetText().ToString() == $"nameof({parameter.Name})");
             }
