@@ -22,6 +22,7 @@ namespace code_analyzer
         private const string PrivateModifier = "private";
         private const string Title = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
+        private const string TitleUseLambdaExpression = "Use Lambda Expressions";
         private const string FieldPrefix = "_";
         private const string String = "string";
         private const string Const = "const";
@@ -81,7 +82,38 @@ namespace code_analyzer
                         x => RemoveUnnecessaryShimsContext(context.Document, classNode, x),
                         RemoveUnnecessaryShimsContextTitle),
                     diagnostic);
+
+                context.RegisterCodeFix(CodeAction.Create(
+                        TitleUseLambdaExpression,
+                        x => UseLambdaExpression(context.Document, classNode, x),
+                        TitleUseLambdaExpression),
+                    diagnostic);
             }
+        }
+
+        private static async Task<Document> UseLambdaExpression(Document document, ClassDeclarationSyntax node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+            var nodes = node.DescendantNodes<ReturnStatementSyntax>()
+                .Where(x => x.Parent is BlockSyntax &&
+                            x.Parent.ChildNodes().Count() == 1 &&
+                            (x.Parent.Parent is SimpleLambdaExpressionSyntax ||
+                             x.Parent.Parent is ParenthesizedLambdaExpressionSyntax)).ToList();
+
+            foreach (var nd in nodes)
+            {
+                if (nd.Parent.Parent is SimpleLambdaExpressionSyntax lambdaExpression)
+                {
+                    editor.ReplaceNode(lambdaExpression, SimpleLambdaExpression(lambdaExpression.Parameter, nd.Expression));
+                }
+
+                if (nd.Parent.Parent is ParenthesizedLambdaExpressionSyntax paramLambdaExpression)
+                {
+                    editor.ReplaceNode(paramLambdaExpression, ParenthesizedLambdaExpression(nd.Expression));
+                }
+            }
+
+            return editor.GetChangedDocument();
         }
 
         private static async Task<Document> RemoveUnnecessaryShimsContext(Document document, SyntaxNode node, CancellationToken cancellationToken)
