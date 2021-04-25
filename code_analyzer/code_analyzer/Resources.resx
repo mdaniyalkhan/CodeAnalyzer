@@ -204,4 +204,10 @@
   <data name="ParametersUnused" xml:space="preserve">
     <value>Remove Unused Parameters</value>
   </data>
+  <data name="SimplifyFakes" xml:space="preserve">
+    <value>Simplify Fakes</value>
+  </data>
+  <data name="RemoveFakes" xml:space="preserve">
+    <value>Remove Fakes</value>
+  </data>
 </root>

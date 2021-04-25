@@ -41,7 +41,9 @@ namespace code_analyzer
             ToArrayToListInsideForeachDeclaration,
             UnnecessaryShimsContext,
             ParameterNotReassignedRule,
-            ParameterUnusedRule);
+            ParameterUnusedRule,
+            SimplifyFakes,
+            RemoveFakes);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -81,6 +83,38 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeMissingConstructorParameterNullValidation, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeParameterNotReassigned, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeParameterUnused, SyntaxKind.Parameter);
+            context.RegisterSyntaxNodeAction(AnalyzeSimpleFakes, SyntaxKind.SimpleMemberAccessExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeRemoveFakes, SyntaxKind.SimpleMemberAccessExpression);
+        }
+
+        private static void AnalyzeRemoveFakes(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is MemberAccessExpressionSyntax node))
+            {
+                return;
+            }
+
+            if (node.Parent is AssignmentExpressionSyntax parent && parent.Parent is ExpressionStatementSyntax)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SimplifyFakes, node.GetLocation(),
+                    "Remove Fakes"));
+            }
+        }
+
+        private static void AnalyzeSimpleFakes(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is MemberAccessExpressionSyntax node))
+            {
+                return;
+            }
+
+            if (node.Parent is AssignmentExpressionSyntax parent && parent.Parent is ExpressionStatementSyntax)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SimplifyFakes, node.GetLocation(),
+                    "Simplify Fakes"));
+            }
         }
 
         private static void AnalyzeDuplicateShims(SyntaxNodeAnalysisContext context)

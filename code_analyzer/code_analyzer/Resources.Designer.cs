@@ -224,6 +224,15 @@ namespace code_analyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Remove Fakes.
+        /// </summary>
+        internal static string RemoveFakes {
+            get {
+                return ResourceManager.GetString("RemoveFakes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Replace Magic Values.
         /// </summary>
         internal static string ReplaceMagicValuesTitle {
@@ -238,6 +247,15 @@ namespace code_analyzer {
         internal static string ShouldlySingleAssertInUowTitle {
             get {
                 return ResourceManager.GetString("ShouldlySingleAssertInUowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Simplify Fakes.
+        /// </summary>
+        internal static string SimplifyFakes {
+            get {
+                return ResourceManager.GetString("SimplifyFakes", resourceCulture);
             }
         }
         

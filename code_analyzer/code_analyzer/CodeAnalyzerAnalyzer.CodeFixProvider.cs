@@ -20,9 +20,11 @@ namespace code_analyzer
     public class CodeAnalyzerCodeFixProvider : CodeFixProvider
     {
         private const string PrivateModifier = "private";
-        private const string Title = "Encapsulate Field";
+        private const string EncapsulateFieldTitle = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
         private const string TitleUseLambdaExpression = "Use Lambda Expressions";
+        private const string SimplifyFakesTitle = "Simplify Fakes";
+        private const string RemoveFakesTitle = "Remove Fakes";
         private const string FieldPrefix = "_";
         private const string String = "string";
         private const string Const = "const";
@@ -31,7 +33,9 @@ namespace code_analyzer
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
             RuleId.EncapsulateFieldRuleId,
             RuleId.ReplaceMagicValues,
-            RuleId.UnnecessaryShimsContext);
+            RuleId.UnnecessaryShimsContext,
+            RuleId.SimplifyFakes,
+            RuleId.RemoveFakes);
 
         public sealed override FixAllProvider GetFixAllProvider()
         {
@@ -56,6 +60,12 @@ namespace code_analyzer
                 .OfType<ClassDeclarationSyntax>()
                 .FirstOrDefault();
 
+            var member = root.FindToken(diagnosticSpan.Start)
+                .Parent
+                .AncestorsAndSelf()
+                .OfType<MemberAccessExpressionSyntax>()
+                .FirstOrDefault();
+
             if (node != null &&
                 !node.Modifiers
                     .ToFullString()
@@ -63,9 +73,26 @@ namespace code_analyzer
             {
                 context.RegisterCodeFix(
                     CodeAction.Create(
-                        Title,
+                        EncapsulateFieldTitle,
                         x => EncapsulatePublicProtectedField(context.Document, node, x),
-                        Title),
+                        EncapsulateFieldTitle),
+                    diagnostic);
+            }
+
+            if(member != null)
+            {
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        SimplifyFakesTitle,
+                        x => SimplifyFakes(context.Document, member, x),
+                        SimplifyFakesTitle),
+                    diagnostic);
+
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        RemoveFakesTitle,
+                        x => RemoveFakes(context.Document, member, x),
+                        RemoveFakesTitle),
                     diagnostic);
             }
 
@@ -89,6 +116,107 @@ namespace code_analyzer
                         TitleUseLambdaExpression),
                     diagnostic);
             }
+        }
+
+        private async Task<Document> SimplifyFakes(Document document, MemberAccessExpressionSyntax node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+
+            var claz = node
+              .Ancestors<ClassDeclarationSyntax>()
+              .FirstOrDefault();
+
+            var fakes = claz
+                .DescendantNodes<MemberAccessExpressionSyntax>()
+                .Where(x => x.Expression.ToString().Trim().Equals(node.Expression.ToString().Trim()))
+                .ToList();
+
+            var clazName = node.Expression.ToString().Split('.')[0];
+            var name = IdentifierName(clazName);
+            var left = MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, name, IdentifierName("Constructor"));
+
+            var expressions = new List<ExpressionSyntax>();
+            var strExpressions = new List<string>();
+            foreach (var fake in fakes)
+            {
+                if (fake.Parent is MemberAccessExpressionSyntax member && member.Parent is AssignmentExpressionSyntax parent &&
+                    !strExpressions.Any(x => x.Equals(parent.Right.ToString())))
+                {
+                    if (parent.Right is SimpleLambdaExpressionSyntax lambda)
+                    {
+                        var assignmentExpression = AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            IdentifierName(member.Name.Identifier.ValueText),
+                            ParenthesizedLambdaExpression(lambda.Body));
+                        expressions.Add(assignmentExpression);
+                        strExpressions.Add(lambda.ToString());
+                    }
+
+                    if (parent.Right is ParenthesizedLambdaExpressionSyntax parenthesized)
+                    {
+                        var parameters = new List<ParameterSyntax>();
+                        for (var index = 1; index < parenthesized.ParameterList.Parameters.Count; index++)
+                        {
+                            parameters.Add(parenthesized.ParameterList.Parameters[index]);
+                        }
+
+                        var assignmentExpression = AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            IdentifierName(member.Name.Identifier.ValueText),
+                            ParenthesizedLambdaExpression(ParameterList()
+                                    .AddParameters(parameters.ToArray()), parenthesized.Body));
+                        expressions.Add(assignmentExpression);
+                        strExpressions.Add(parenthesized.ToString());
+                    }
+                }
+            }
+
+            var initializer = InitializerExpression(SyntaxKind.ObjectInitializerExpression)
+                .AddExpressions(expressions.ToArray());
+            var shimObject = ObjectCreationExpression(ParseTypeName(clazName))
+                .WithInitializer(initializer)
+                .AddArgumentListArguments(Argument(IdentifierName("_")));
+            var local = LocalDeclarationStatement(VariableDeclaration(ParseTypeName("var")))
+                .AddDeclarationVariables(
+                    VariableDeclarator("instance")
+                        .WithInitializer(EqualsValueClause(shimObject)));
+            var right = SimpleLambdaExpression(Parameter(ParseToken("_")), Block(
+                local,
+                ExpressionStatement(
+                    InvocationExpression(
+                        MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("instance"), IdentifierName("BehaveAsDefaultValue"))))));
+            var finalNode = ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, left, right).NormalizeWhitespace(), Token(SyntaxKind.SemicolonToken));
+
+            editor.ReplaceNode(node.Ancestors<ExpressionStatementSyntax>().First(), finalNode);
+            return editor.GetChangedDocument();
+        }
+
+        private async Task<Document> RemoveFakes(Document document, MemberAccessExpressionSyntax node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+
+            var claz = node
+              .Ancestors<ClassDeclarationSyntax>()
+              .FirstOrDefault();
+
+            var fakes = claz
+                .DescendantNodes<MemberAccessExpressionSyntax>()
+                .Where(x => x.Expression.ToString().Trim().Equals(node.Expression.ToString().Trim()))
+                .ToList();
+
+            foreach (var fake in fakes)
+            {
+                if (fake.Parent.Parent is AssignmentExpressionSyntax parent)
+                {
+                    if (parent.Right is SimpleLambdaExpressionSyntax || 
+                        parent.Right is ParenthesizedLambdaExpressionSyntax)
+                    {
+                        editor.RemoveNode(fake.Ancestors<ExpressionStatementSyntax>().First());
+                    }
+                }
+            }
+
+            return editor.GetChangedDocument();
         }
 
         private static async Task<Document> UseLambdaExpression(Document document, ClassDeclarationSyntax node, CancellationToken cancellationToken)

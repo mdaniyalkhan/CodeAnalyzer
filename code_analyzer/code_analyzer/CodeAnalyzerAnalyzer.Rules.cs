@@ -196,5 +196,21 @@ namespace code_analyzer
             Category,
             DiagnosticSeverity.Warning,
             true);
+
+        private static readonly DiagnosticDescriptor SimplifyFakes = new DiagnosticDescriptor(
+            RuleId.SimplifyFakes,
+            nameof(Resources.SimplifyFakes).Get(),
+            nameof(Resources.SimplifyFakes).Get(),
+            Category,
+            DiagnosticSeverity.Info,
+            true);
+
+        private static readonly DiagnosticDescriptor RemoveFakes = new DiagnosticDescriptor(
+            RuleId.RemoveFakes,
+            nameof(Resources.RemoveFakes).Get(),
+            nameof(Resources.SimplifyFakes).Get(),
+            Category,
+            DiagnosticSeverity.Info,
+            true);
     }
 }
