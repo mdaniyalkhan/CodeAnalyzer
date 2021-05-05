@@ -210,4 +210,7 @@
   <data name="RemoveFakes" xml:space="preserve">
     <value>Remove Fakes</value>
   </data>
+  <data name="SimplifyFakesObject" xml:space="preserve">
+    <value>Simplify Fakes Object</value>
+  </data>
 </root>

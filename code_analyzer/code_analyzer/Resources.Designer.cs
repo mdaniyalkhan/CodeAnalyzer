@@ -260,6 +260,15 @@ namespace code_analyzer {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Simplify Fakes Object.
+        /// </summary>
+        internal static string SimplifyFakesObject {
+            get {
+                return ResourceManager.GetString("SimplifyFakesObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Simplify shims using existing objects.
         /// </summary>
         internal static string SimplifyShimsTitle {

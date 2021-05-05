@@ -212,5 +212,13 @@ namespace code_analyzer
             Category,
             DiagnosticSeverity.Info,
             true);
+
+        private static readonly DiagnosticDescriptor SimplifyFakesObject = new DiagnosticDescriptor(
+            RuleId.SimplifyFakesObject,
+            nameof(Resources.SimplifyFakesObject).Get(),
+            nameof(Resources.SimplifyFakesObject).Get(),
+            Category,
+            DiagnosticSeverity.Info,
+            true);
     }
 }

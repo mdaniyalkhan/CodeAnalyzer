@@ -43,7 +43,8 @@ namespace code_analyzer
             ParameterNotReassignedRule,
             ParameterUnusedRule,
             SimplifyFakes,
-            RemoveFakes);
+            RemoveFakes,
+            SimplifyFakesObject);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -85,6 +86,22 @@ namespace code_analyzer
             context.RegisterSyntaxNodeAction(AnalyzeParameterUnused, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeSimpleFakes, SyntaxKind.SimpleMemberAccessExpression);
             context.RegisterSyntaxNodeAction(AnalyzeRemoveFakes, SyntaxKind.SimpleMemberAccessExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeSimplifyFakesObject, SyntaxKind.ObjectCreationExpression);
+        }
+
+        private void AnalyzeSimplifyFakesObject(SyntaxNodeAnalysisContext context)
+        {
+            if (!(context.Node is ObjectCreationExpressionSyntax node))
+            {
+                return;
+            }
+
+            if (node.Type.ToString().StartsWith("Shim"))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SimplifyFakesObject, node.GetLocation(),
+                    "Simplify Fakes Object"));
+            }
         }
 
         private static void AnalyzeRemoveFakes(SyntaxNodeAnalysisContext context)

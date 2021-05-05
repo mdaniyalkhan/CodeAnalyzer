@@ -24,6 +24,7 @@ namespace code_analyzer
         private const string TitleMagicValues = "Replace Magic Values";
         private const string TitleUseLambdaExpression = "Use Lambda Expressions";
         private const string SimplifyFakesTitle = "Simplify Fakes";
+        private const string SimplifyFakesObjectsTitle = "Simplify Fakes Objects";
         private const string RemoveFakesTitle = "Remove Fakes";
         private const string FieldPrefix = "_";
         private const string String = "string";
@@ -35,7 +36,8 @@ namespace code_analyzer
             RuleId.ReplaceMagicValues,
             RuleId.UnnecessaryShimsContext,
             RuleId.SimplifyFakes,
-            RuleId.RemoveFakes);
+            RuleId.RemoveFakes,
+            RuleId.SimplifyFakesObject);
 
         public sealed override FixAllProvider GetFixAllProvider()
         {
@@ -66,6 +68,12 @@ namespace code_analyzer
                 .OfType<MemberAccessExpressionSyntax>()
                 .FirstOrDefault();
 
+            var objectCreation = root.FindToken(diagnosticSpan.Start)
+                .Parent
+                .AncestorsAndSelf()
+                .OfType<ObjectCreationExpressionSyntax>()
+                .FirstOrDefault();
+
             if (node != null &&
                 !node.Modifiers
                     .ToFullString()
@@ -76,6 +84,16 @@ namespace code_analyzer
                         EncapsulateFieldTitle,
                         x => EncapsulatePublicProtectedField(context.Document, node, x),
                         EncapsulateFieldTitle),
+                    diagnostic);
+            }
+
+            if (objectCreation != null)
+            {
+                context.RegisterCodeFix(
+                    CodeAction.Create(
+                        SimplifyFakesObjectsTitle,
+                        x => SimplifyFakesObject(context.Document, objectCreation, x),
+                        SimplifyFakesObjectsTitle),
                     diagnostic);
             }
 
@@ -116,6 +134,36 @@ namespace code_analyzer
                         TitleUseLambdaExpression),
                     diagnostic);
             }
+        }
+
+        private static async Task<Document> SimplifyFakesObject(Document document, ObjectCreationExpressionSyntax node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+
+            if (node.Type.ToString().StartsWith("Shim"))
+            {
+                var claz = node
+                    .Ancestors<ClassDeclarationSyntax>()
+                    .FirstOrDefault();
+
+                var objects = claz
+                    .DescendantNodes<ObjectCreationExpressionSyntax>()
+                    .Where(x => x.Type.ToString().Trim().Equals(node.Type.ToString().Trim()))
+                    .ToList();
+
+                foreach (var obj in objects)
+                {
+                    var typeSyntax = ParseTypeName(obj.Type.ToString().Replace("Shim", string.Empty));
+                    editor.ReplaceNode(obj.Parent is MemberAccessExpressionSyntax 
+                            ? obj.Parent 
+                            : obj,
+                        ObjectCreationExpression(typeSyntax)
+                            .WithArgumentList(ArgumentList())
+                            .NormalizeWhitespace());
+                }
+            }
+
+            return editor.GetChangedDocument();
         }
 
         private async Task<Document> SimplifyFakes(Document document, MemberAccessExpressionSyntax node, CancellationToken cancellationToken)

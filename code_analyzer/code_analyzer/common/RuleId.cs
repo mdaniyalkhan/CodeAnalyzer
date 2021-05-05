@@ -28,6 +28,7 @@ namespace code_analyzer.common
         public static readonly string UnnecessaryShimsContext = "unnecessary_shims_context";
         public static readonly string SimplifyFakes = "simplify_fakes";
         public static readonly string RemoveFakes = "remove_fakes";
+        public static readonly string SimplifyFakesObject = "simplify_fakes_object";
         public static readonly string ParameterNotReAssigned = "parameters_should_not_be_reassigned";
         public static readonly string ParameterUnused = "parameters_unused";
 
