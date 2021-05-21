@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
@@ -22,6 +23,7 @@ namespace code_analyzer
         private const string PrivateModifier = "private";
         private const string EncapsulateFieldTitle = "Encapsulate Field";
         private const string TitleMagicValues = "Replace Magic Values";
+        private const string TitleMergeDuplicateIfBlocks = "Merge Duplicate If Blocks";
         private const string TitleUseLambdaExpression = "Use Lambda Expressions";
         private const string SimplifyFakesTitle = "Simplify Fakes";
         private const string SimplifyFakesObjectsTitle = "Simplify Fakes Objects";
@@ -34,6 +36,7 @@ namespace code_analyzer
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
             RuleId.EncapsulateFieldRuleId,
             RuleId.ReplaceMagicValues,
+            RuleId.MergeDuplicateIfBlocks,
             RuleId.UnnecessaryShimsContext,
             RuleId.SimplifyFakes,
             RuleId.RemoveFakes,
@@ -97,7 +100,7 @@ namespace code_analyzer
                     diagnostic);
             }
 
-            if(member != null)
+            if (member != null)
             {
                 context.RegisterCodeFix(
                     CodeAction.Create(
@@ -133,6 +136,12 @@ namespace code_analyzer
                         x => UseLambdaExpression(context.Document, classNode, x),
                         TitleUseLambdaExpression),
                     diagnostic);
+
+                context.RegisterCodeFix(CodeAction.Create(
+                        TitleMergeDuplicateIfBlocks,
+                        x => MergeDuplicateIfBlocks(context.Document, classNode, x),
+                        TitleMergeDuplicateIfBlocks),
+                    diagnostic);
             }
         }
 
@@ -154,8 +163,8 @@ namespace code_analyzer
                 foreach (var obj in objects)
                 {
                     var typeSyntax = ParseTypeName(obj.Type.ToString().Replace("Shim", string.Empty));
-                    editor.ReplaceNode(obj.Parent is MemberAccessExpressionSyntax 
-                            ? obj.Parent 
+                    editor.ReplaceNode(obj.Parent is MemberAccessExpressionSyntax
+                            ? obj.Parent
                             : obj,
                         ObjectCreationExpression(typeSyntax)
                             .WithArgumentList(ArgumentList())
@@ -256,7 +265,7 @@ namespace code_analyzer
             {
                 if (fake.Parent.Parent is AssignmentExpressionSyntax parent)
                 {
-                    if (parent.Right is SimpleLambdaExpressionSyntax || 
+                    if (parent.Right is SimpleLambdaExpressionSyntax ||
                         parent.Right is ParenthesizedLambdaExpressionSyntax)
                     {
                         editor.RemoveNode(fake.Ancestors<ExpressionStatementSyntax>().First());
@@ -289,6 +298,57 @@ namespace code_analyzer
                 }
             }
 
+            return editor.GetChangedDocument();
+        }
+
+        private static async Task<Document> MergeDuplicateIfBlocks(Document document, ClassDeclarationSyntax node, CancellationToken cancellationToken)
+        {
+            var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
+            var methods = node.DescendantNodes<MethodDeclarationSyntax>().ToList();
+
+            var blocks = new List<string>();
+            foreach (var method in methods)
+            {
+                var statements = method.DescendantNodes<IfStatementSyntax>().ToList();
+                foreach (var statement in statements)
+                {
+                    var block = statement.Statement.ToString();
+                    if (blocks.Any(x => x.Equals(block, StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+
+                    var duplicateStatements = statements.Where(x =>
+                        x.Statement.ToString().Equals(block, StringComparison.Ordinal)).ToList();
+
+                    if (duplicateStatements.Count > 1)
+                    {
+                        blocks.Add(block);
+
+                        var conditions = duplicateStatements.Select(x => x.Condition.ToString()).ToList();
+                        var expression = string.Empty;
+                        foreach (var condition in conditions)
+                        {
+                            if (conditions.IndexOf(condition) == conditions.Count - 1)
+                            {
+                                expression += condition;
+                                continue;
+                            }
+
+                            expression += condition + " || ";
+                        }
+
+                        var firstIfNode = duplicateStatements.First();
+                        var ifStatementSyntax = IfStatement(ParseExpression(expression), firstIfNode.Statement);
+                        editor.ReplaceNode(firstIfNode, ifStatementSyntax);
+
+                        foreach (var statementSyntax in duplicateStatements.Except(new[] { firstIfNode }))
+                        {
+                            editor.RemoveNode(statementSyntax);
+                        }
+                    }
+                }
+            }
             return editor.GetChangedDocument();
         }
 

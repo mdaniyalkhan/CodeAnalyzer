@@ -20,6 +20,7 @@ namespace code_analyzer.common
         public static readonly string MissingConstructorParameterNullValidation = "missing_constructor_parameter_null_validation";
         public static readonly string NonPrivateConstantsRuleId = "non_private_constants";
         public static readonly string ReplaceMagicValues = "replace_magic_values";
+        public static readonly string MergeDuplicateIfBlocks = "merge_duplicate_if_blocks";
         public static readonly string ShouldlySingleAssertInUowRuleId = "shouldly_single_assert_uow";
         public static readonly string SimplifyShims = "simplify_shims";
         public static readonly string SwitchWithoutDefaultCaseRuleId = "switch_without_default_case";
