@@ -312,5 +312,14 @@ namespace code_analyzer {
                 return ResourceManager.GetString("UnnecessaryShimsContextTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use Lambda Expressions.
+        /// </summary>
+        internal static string UseLambdaExpressionsTitle {
+            get {
+                return ResourceManager.GetString("UseLambdaExpressionsTitle", resourceCulture);
+            }
+        }
     }
 }

@@ -125,6 +125,10 @@
     <value>Replace Magic Values</value>
     <comment>Replace Magic Values</comment>
   </data>
+  <data name="UseLambdaExpressionsTitle" xml:space="preserve">
+    <value>Use Lambda Expressions</value>
+    <comment>Use Lambda Expressions</comment>
+  </data>
   <data name="DuplicateShimsTitle" xml:space="preserve">
     <value>Duplicate Shims</value>
     <comment>Duplicate Shims</comment>

@@ -37,6 +37,14 @@ namespace code_analyzer
             DiagnosticSeverity.Info,
             true);
 
+        private static readonly DiagnosticDescriptor UseLambdaExpression = new DiagnosticDescriptor(
+            RuleId.UseLambdaExpression,
+            nameof(Resources.UseLambdaExpressionsTitle).Get(),
+            nameof(Resources.MessageFormat).Get(),
+            Category,
+            DiagnosticSeverity.Info,
+            true);
+
         private static readonly DiagnosticDescriptor EncapsulateFieldRule = new DiagnosticDescriptor(
             RuleId.EncapsulateFieldRuleId,
             nameof(Resources.EncapsulateFieldTitle).Get(),

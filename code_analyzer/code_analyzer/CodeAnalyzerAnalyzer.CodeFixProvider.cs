@@ -36,6 +36,7 @@ namespace code_analyzer
         public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
             RuleId.EncapsulateFieldRuleId,
             RuleId.ReplaceMagicValues,
+            RuleId.UseLambdaExpression,
             RuleId.MergeDuplicateIfBlocks,
             RuleId.UnnecessaryShimsContext,
             RuleId.SimplifyFakes,
@@ -120,6 +121,12 @@ namespace code_analyzer
             if (classNode != null)
             {
                 context.RegisterCodeFix(CodeAction.Create(
+                        TitleUseLambdaExpression,
+                        x => UseLambdaExpression(context.Document, classNode, x),
+                        TitleUseLambdaExpression),
+                    diagnostic);
+
+                context.RegisterCodeFix(CodeAction.Create(
                         TitleMagicValues,
                         x => ReplaceMagicValues(context.Document, classNode, x),
                         TitleMagicValues),
@@ -129,12 +136,6 @@ namespace code_analyzer
                         RemoveUnnecessaryShimsContextTitle,
                         x => RemoveUnnecessaryShimsContext(context.Document, classNode, x),
                         RemoveUnnecessaryShimsContextTitle),
-                    diagnostic);
-
-                context.RegisterCodeFix(CodeAction.Create(
-                        TitleUseLambdaExpression,
-                        x => UseLambdaExpression(context.Document, classNode, x),
-                        TitleUseLambdaExpression),
                     diagnostic);
 
                 context.RegisterCodeFix(CodeAction.Create(
@@ -290,11 +291,6 @@ namespace code_analyzer
                 if (nd.Parent.Parent is SimpleLambdaExpressionSyntax lambdaExpression)
                 {
                     editor.ReplaceNode(lambdaExpression, SimpleLambdaExpression(lambdaExpression.Parameter, nd.Expression));
-                }
-
-                if (nd.Parent.Parent is ParenthesizedLambdaExpressionSyntax paramLambdaExpression)
-                {
-                    editor.ReplaceNode(paramLambdaExpression, ParenthesizedLambdaExpression(nd.Expression));
                 }
             }
 

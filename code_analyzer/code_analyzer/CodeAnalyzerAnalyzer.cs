@@ -34,6 +34,7 @@ namespace code_analyzer
             NonPrivateConstantsRule,
             PreferClassOverStructRule,
             ReplaceMagicValues,
+            UseLambdaExpression,
             ShouldlySingleAssertInUowRule,
             SimplifyShims,
             SwitchWithoutDefaultCaseRule,
@@ -54,6 +55,7 @@ namespace code_analyzer
             }
             context.RegisterSyntaxNodeAction(AnalyzeFieldToBeEncapsulate, SyntaxKind.FieldDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeMagicValues, SyntaxKind.ClassDeclaration);
+            context.RegisterSyntaxNodeAction(AnalyzeUseLambdaExpressions, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeContextualKeyWord, SyntaxKind.IdentifierName, SyntaxKind.Parameter);
             context.RegisterSyntaxNodeAction(AnalyzeClassesAreNounRule, SyntaxKind.ClassDeclaration);
             context.RegisterSyntaxNodeAction(AnalyzeBlankBlockCode, SyntaxKind.Block);
@@ -218,6 +220,20 @@ namespace code_analyzer
             context.ReportDiagnostic(Diagnostic.Create(
                 ReplaceMagicValues, node.GetLocation(),
                 "Replace Magic Values inside methods with respect to defined constants"));
+        }
+
+        private static void AnalyzeUseLambdaExpressions(SyntaxNodeAnalysisContext context)
+        {
+            var node = context.Node;
+
+            if (!(node is ClassDeclarationSyntax))
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                UseLambdaExpression, node.GetLocation(),
+                "Simplify Code Using Lambda Expressions"));
         }
 
         private static void AnalyzeTestCaseDataArguments(SyntaxNodeAnalysisContext context)

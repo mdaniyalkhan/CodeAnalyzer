@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="code_analyzer.66416a0e-cc26-4965-aea9-c8b84cf2d236" Version="2.0" Language="en-US" Publisher="Mushdap"/>
+        <Identity Id="code_analyzer.66416a0e-cc26-4965-aea9-c8b84cf2d236" Version="2.1" Language="en-US" Publisher="Mushdap"/>
         <DisplayName>code_analyzer</DisplayName>
         <Description xml:space="preserve">Code analyzer extension to review code severe issues to ensure 100% FTAR </Description>
     </Metadata>
